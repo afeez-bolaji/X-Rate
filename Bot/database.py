@@ -2,7 +2,7 @@
 
 import mysql.connector
 import os
-from bot.security import get_env_var
+from security import get_env_var
 
 # Connect to MySQL Database
 def get_db_connection():

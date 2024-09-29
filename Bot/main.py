@@ -1,27 +1,23 @@
-# Main entry point for the bot
-
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-from bot.handlers import start, handle_photo, handle_api_keys, terms_and_policy
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from handlers import start, handle_photo, handle_api_keys, terms_and_policy
+from security import get_env_var
+import os
 
 def main():
-    # Add your bot's token here
-    TOKEN = "7837753073:AAGOrCuAv-ql704S7afT47l22BCKRI3jdwA"
+    # Retrieve the token from .env file
+    TOKEN = os.getenv("TOKEN")
 
-    updater = Updater(TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    # Initialize the application (replaces Updater in version 20+)
+    application = Application.builder().token(TOKEN).build()
 
-    # Register the command and message handlers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("terms", terms_and_policy))
-    dispatcher.add_handler(MessageHandler(Filters.photo, handle_photo))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_api_keys))
+    # Register the command and message handlers (all functions are now async)
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("terms", terms_and_policy))
+    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_api_keys))
 
     # Start the bot
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
-
-

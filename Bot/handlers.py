@@ -1,45 +1,33 @@
-# Handlers for different bot commands and messages
-
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackContext
-from bot.keyboards import bybit_registration_keyboard
+from telegram.ext import ContextTypes
 
-def start(update: Update, context: CallbackContext):
-    user = update.message.from_user
-    username = user.username
-    first_name = user.first_name
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sends a greeting message and prompts the user to sign up for Bybit."""
+    user = update.effective_user
+    welcome_message = f"Hello {user.first_name}! Welcome to our bot. Please sign up on Bybit to use our services."
+    await update.message.reply_text(welcome_message)
 
-    # Greeting the user
-    welcome_message = f"Hello, {first_name} (@{username})! Welcome to XRate P2P Trading Bot. You need to sign up on Bybit to use our services."
-    update.message.reply_text(welcome_message)
+    # Instructions and Bybit registration link
+    description = (
+        "To get started with P2P trading, please sign up on Bybit.\n"
+        "1. Click the link below to register.\n"
+        "2. Complete the KYC verification.\n"
+        "3. Generate and send your API Key and Secret to this bot."
+    )
+    keyboard = [[InlineKeyboardButton("Sign up for Bybit", url="https://www.bybit.com/en/register")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(description, reply_markup=reply_markup)
 
-    # Providing registration link and description
-    description = ("Please sign up on Bybit using the following link:\n\n"
-                   "1. Visit the Bybit registration page.\n"
-                   "2. Complete the registration form.\n"
-                   "3. Verify your identity as required.\n"
-                   "4. Once you're signed up, go to your profile, and generate your API key and secret key.\n"
-                   "5. Send your API and secret keys to this bot for trading.")
-    update.message.reply_text(description, reply_markup=bybit_registration_keyboard())
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handles the photo upload."""
+    await update.message.reply_text("Photo received! Please upload your passport photo as well.")
 
-def terms_and_policy(update: Update, context: CallbackContext):
-    # Terms and policy message
-    terms = ("Terms of Service:\n\n"
-             "1. All users must comply with Bybit's terms and conditions.\n"
-             "2. P2P transactions are subject to market risk.\n"
-             "3. We do not hold responsibility for losses incurred through trading.\n\n"
-             "By using our services, you agree to these terms.")
-    update.message.reply_text(terms)
+async def handle_api_keys(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handles API key submission."""
+    await update.message.reply_text("Please provide your Bybit API Key and Secret.")
 
-def handle_photo(update: Update, context: CallbackContext):
-    # Handling user photo uploads (face and passport)
-    update.message.reply_text("Thank you for uploading your document. You can now proceed with sending your Bybit API and secret key.")
-
-def handle_api_keys(update: Update, context: CallbackContext):
-    # Handle API and secret key input from the user
-    user_input = update.message.text
-    if "API key" in user_input and "Secret Key" in user_input:
-        update.message.reply_text("API keys received! You can now start trading.")
-    else:
-        update.message.reply_text("Please provide both API key and Secret Key.")
-
+async def terms_and_policy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sends the terms and policy."""
+    policy_text = "Terms and policy of using this bot: [Your terms here]"
+    await update.message.reply_text(policy_text)
