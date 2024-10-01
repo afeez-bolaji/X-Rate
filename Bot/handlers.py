@@ -46,28 +46,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # import requests
 
+import io
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles passport photo upload."""
     photo = update.message.photo[-1]  # Get the highest resolution photo
     file_info = await context.bot.get_file(photo.file_id)
-    print(f"File ID: {file_info.file_unique_id}")
     
     try:
-        response = requests.get(f'https://api.telegram.org/file/bot{context.bot.token}/{file_info.file_unique_id}')
-        if response.status_code == 200:
-            with open(f"passport_{update.effective_user.id}.jpg", 'wb') as f:
-                print("Downloading file...")
-                f.write(response.content)
-                context.user_data["passport_image_path"] = f"passport_{update.effective_user.id}.jpg"
-                await update.message.reply_text(
-                    "✅ Passport photo received! Now, please head over to Bybit, "
-                    "generate your API Key and Secret, and send them here."
-                )
-        else:
-            print(f"Error downloading file: {response.status_code}")
-            await update.message.reply_text("Error downloading file")
+        response = await context.bot.download_file(file_info.file_unique_id)
+        with open(f"passport_{update.effective_user.id}.jpg", 'wb') as f:
+            f.write(response.content)
+        context.user_data["passport_image_path"] = f"passport_{update.effective_user.id}.jpg"
+        await update.message.reply_text(
+            "✅ Passport photo received! Now, please head over to Bybit, "
+            "generate your API Key and Secret, and send them here."
+        )
     except Exception as e:
         print(f"An error occurred: {e}")
+
 
 
 
