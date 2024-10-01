@@ -2,6 +2,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from verification import verify_user_passport_and_api
 import mysql.connector
+import requests
+
 
 # Database connection function
 def get_db_connection():
@@ -41,21 +43,33 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "📷 Please upload your passport photo now for verification purposes. Use the 'Attach' button to send the photo."
     )
 
+
+# import requests
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles passport photo upload."""
     photo = update.message.photo[-1]  # Get the highest resolution photo
-    file = await context.bot.get_file(photo.file_id)
-    file_path = f"passport_{update.effective_user.id}.jpg"  # Save photo with a unique filename
-    await file.download(file_path)
+    file_info = await context.bot.get_file(photo.file_id)
+    print(f"File ID: {file_info.file_unique_id}")
+    
+    try:
+        response = requests.get(f'https://api.telegram.org/file/bot{context.bot.token}/{file_info.file_unique_id}')
+        if response.status_code == 200:
+            with open(f"passport_{update.effective_user.id}.jpg", 'wb') as f:
+                print("Downloading file...")
+                f.write(response.content)
+                context.user_data["passport_image_path"] = f"passport_{update.effective_user.id}.jpg"
+                await update.message.reply_text(
+                    "✅ Passport photo received! Now, please head over to Bybit, "
+                    "generate your API Key and Secret, and send them here."
+                )
+        else:
+            print(f"Error downloading file: {response.status_code}")
+            await update.message.reply_text("Error downloading file")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
-    # Store the file path in user data for future verification use
-    context.user_data["passport_image_path"] = file_path
 
-    # Acknowledge receipt and guide the user to the next step
-    await update.message.reply_text(
-        "✅ Passport photo received! Now, please head over to Bybit, "
-        "generate your API Key and Secret, and send them here."
-    )
 
 async def handle_api_keys(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles API key and secret submission."""
