@@ -1,11 +1,12 @@
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from handlers import start, handle_photo, handle_api_keys, terms_and_policy
-from security import get_env_var
 import os
+from dotenv import load_dotenv
 
 def main():
-    # Retrieve the token from .env file
-    TOKEN = os.getenv("TOKEN")
+    # Load environment variables from .env file
+    load_dotenv()
+    TOKEN = os.getenv("TOKEN")  # Make sure TOKEN is loaded correctly from .env
 
     # Initialize the application (replaces Updater in version 20+)
     application = Application.builder().token(TOKEN).build()

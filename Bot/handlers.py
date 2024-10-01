@@ -2,9 +2,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from verification import verify_user_passport_and_api
 import mysql.connector
-import os
 
-# Database connection function (for reuse)
+# Database connection function
 def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
@@ -14,58 +13,80 @@ def get_db_connection():
     )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Sends a greeting message and prompts the user to sign up for Bybit."""
+    """Sends a greeting message and provides step-by-step instructions for signing up."""
     user = update.effective_user
-    welcome_message = f"Hello {user.first_name}! Welcome to our bot. Please sign up on Bybit to use our services."
-    await update.message.reply_text(welcome_message)
-
-    # Instructions and Bybit registration link
-    description = (
-        "To get started with P2P trading, please sign up on Bybit.\n"
-        "1. Click the link below to register.\n"
-        "2. Complete the KYC verification.\n"
-        "3. Generate and send your API Key and Secret to this bot."
+    welcome_message = (
+        f"Hello {user.first_name}! 👋\n\n"
+        "Welcome to our bot, designed to help you get started with P2P trading.\n"
+        "To begin, you'll need to complete the following steps:"
     )
+    instructions = (
+        "1️⃣ Sign up for Bybit using the link below.\n"
+        "2️⃣ Complete the KYC (Know Your Customer) verification process.\n"
+        "3️⃣ Upload your passport photo here for identity verification.\n"
+        "4️⃣ Generate your API Key and Secret on Bybit and send them to this bot.\n"
+        "\nOnce you've completed these steps, you'll be ready to trade! 🚀"
+    )
+
+    # Bybit registration link
     keyboard = [[InlineKeyboardButton("Sign up for Bybit", url="https://www.bybit.com/en/register")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await update.message.reply_text(description, reply_markup=reply_markup)
+
+    # Send welcome message, instructions, and the registration link
+    await update.message.reply_text(welcome_message)
+    await update.message.reply_text(instructions, reply_markup=reply_markup)
+
+    # Guide user to upload passport next
+    await update.message.reply_text(
+        "📷 Please upload your passport photo now for verification purposes. Use the 'Attach' button to send the photo."
+    )
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handles the passport photo upload."""
-    # Download the photo from Telegram
-    photo = update.message.photo[-1]  # Get the highest quality photo
+    """Handles passport photo upload."""
+    photo = update.message.photo[-1]  # Get the highest resolution photo
     file = await context.bot.get_file(photo.file_id)
-    file_path = f"passport_{update.effective_user.id}.jpg"  # Save with user-specific filename
+    file_path = f"passport_{update.effective_user.id}.jpg"  # Save photo with a unique filename
     await file.download(file_path)
 
-    # Save the file path in the context for future use
+    # Store the file path in user data for future verification use
     context.user_data["passport_image_path"] = file_path
-    await update.message.reply_text("Passport photo received! Now please provide your Bybit API Key and Secret.")
+
+    # Acknowledge receipt and guide the user to the next step
+    await update.message.reply_text(
+        "✅ Passport photo received! Now, please head over to Bybit, "
+        "generate your API Key and Secret, and send them here."
+    )
 
 async def handle_api_keys(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handles API key submission and verification."""
-    # Retrieve passport image path and API key from user input
+    """Handles API key and secret submission."""
+    # Retrieve the passport image path
     passport_image_path = context.user_data.get("passport_image_path")
     api_key = update.message.text
 
+    # Ensure that the passport photo is uploaded first
     if not passport_image_path:
-        await update.message.reply_text("Please upload your passport photo first.")
+        await update.message.reply_text("⚠️ Please upload your passport photo before submitting your API keys.")
         return
 
-    # Database connection
+    # Connect to the database and verify the user's API key and passport
     db_connection = get_db_connection()
-
-    # Call verification logic (this checks passport, API key, and prevents duplicate entries)
     result = verify_user_passport_and_api(api_key, passport_image_path, db_connection)
 
-    # Send the result of the verification process to the user
+    # Inform the user about the verification result
     await update.message.reply_text(result)
 
     # Close the database connection
     db_connection.close()
 
 async def terms_and_policy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Sends the terms and policy."""
-    policy_text = "Terms and policy of using this bot: [Your terms here]"
-    await update.message.reply_text(policy_text)
+    """Sends the bot's terms and conditions."""
+    policy_text = (
+        "📜 *Terms and Policy*\n\n"
+        "By using this bot, you agree to the following:\n"
+        "1. Your data will be used solely for the purpose of verification and API integration with Bybit.\n"
+        "2. You are responsible for keeping your API Key and Secret secure.\n"
+        "3. Unauthorized or fraudulent use will result in the termination of your access.\n"
+        "\nFor more details, please refer to our full terms and conditions."
+    )
+    await update.message.reply_text(policy_text, parse_mode="Markdown")
+
