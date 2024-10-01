@@ -55,19 +55,19 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     
     try:
         downloaded_file = io.BytesIO()
-        chunk_size = 8192
-        offset = 0
+        chunks = []
 
         while True:
-            chunk = await context.bot.get_file(file_info.file_unique_id, offset=offset)
+            chunk = await context.bot.get_file(file_info.file_unique_id, download=True)
             if not chunk:
                 break
             else:
-                downloaded_file.write(chunk.content)
-                offset += chunk_size
+                chunks.append(chunk.content)
 
         with open(f"passport_{update.effective_user.id}.jpg", 'wb') as f:
-            f.write(downloaded_file.getvalue())
+            for chunk in chunks:
+                downloaded_file.write(chunk)
+                f.write(downloaded_file.getvalue())
         context.user_data["passport_image_path"] = f"passport_{update.effective_user.id}.jpg"
         await update.message.reply_text(
             "✅ Passport photo received! Now, please head over to Bybit, "
