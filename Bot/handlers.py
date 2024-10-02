@@ -54,12 +54,14 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         photos = update.message.photo
         max_index = len(photos) - 1
         
-        photo_file = await context.bot.get_file(photos[max_index].file_id)
+        # Wait for the file to be retrieved from Telegram's servers
+        downloaded_file_object = await context.bot.get_file(photos[max_index].file_id)
         
-        downloaded_file_content = await photo_file.download_as_bytearray()
+        # Download the file content as a byte array
+        photo_file_content = await downloaded_file_object.download_as_bytearray()
         
         with open(f"passport_{update.effective_user.id}.jpg", 'wb') as f:
-            f.write(downloaded_file_content)
+            f.write(photo_file_content)
             
         context.user_data["passport_image_path"] = f"passport_{update.effective_user.id}.jpg"
         
@@ -71,7 +73,16 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             "generate your API Key and Secret, and send them here."
         )
     except Exception as e:
-        print(f"An error occurred: {e}")
+        # Handle the exception more robustly
+        import logging
+        
+        # Log the exception with additional context
+        logging.error(f"Error handling photo upload: {e}")
+        
+        # Send a friendly error message to the user
+        await update.message.reply_text("An error occurred while processing your passport image. Please try again.")
+
+
 
     
 
