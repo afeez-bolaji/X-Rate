@@ -55,10 +55,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         max_index = len(photos) - 1
         
         # Wait for the file to be retrieved from Telegram's servers
-        downloaded_file_object = await context.bot.get_file(photos[max_index].file_id)
+        file_info = await context.bot.get_file(photos[max_index].file_id)
         
         # Download the file content as a byte array
-        photo_file_content = await downloaded_file_object.download_as_bytearray()
+        photo_file_content = await file_info.download_as_bytearray()
         
         with open(f"passport_{update.effective_user.id}.jpg", 'wb') as f:
             f.write(photo_file_content)
@@ -82,9 +82,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             print(traceback.format_exc())
 
 
-
-
-    
 
 
 
