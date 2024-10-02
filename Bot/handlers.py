@@ -1,5 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from passport_validator import validate_passport
 from verification import verify_user_passport_and_api
 import mysql.connector
 import requests
@@ -44,27 +45,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-# import requests
 
-import io
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles passport photo upload."""
-    photos = update.message.photo
-    max_index = len(photos) - 1
-
-    photo = photos[max_index]
-    file_info = await context.bot.get_file(photo.file_id)
     
     try:
+        photos = update.message.photo
+        max_index = len(photos) - 1
+        
+        photo_file = await context.bot.get_file(photos[max_index].file_id)
+        
+        downloaded_file_content = await photo_file.download_as_bytearray()
+        
         with open(f"passport_{update.effective_user.id}.jpg", 'wb') as f:
-            while True:
-                response = await file_info.download_as_bytearray()
-                if len(response) == 0:
-                    break
-                else:
-                    f.write(response)
+            f.write(downloaded_file_content)
+            
         context.user_data["passport_image_path"] = f"passport_{update.effective_user.id}.jpg"
+        
+        # Use a try-except block to catch any exceptions
+        await validate_passport(update, context)
+        
         await update.message.reply_text(
             "✅ Passport photo received! Now, please head over to Bybit, "
             "generate your API Key and Secret, and send them here."
@@ -72,9 +73,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     except Exception as e:
         print(f"An error occurred: {e}")
 
-
-
-
+    
 
 
 
