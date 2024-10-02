@@ -67,11 +67,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         
         # Use a try-except block to catch any exceptions
         await validate_passport(update, context)
-        
-        await update.message.reply_text(
-            "✅ Passport photo received! Now, please head over to Bybit, "
-            "generate your API Key and Secret, and send them here."
-        )
     except Exception as e:
         # Handle the exception more robustly
         import logging
@@ -80,7 +75,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         logging.error(f"Error handling photo upload: {e}")
         
         # Send a friendly error message to the user
-        await update.message.reply_text("An error occurred while processing your passport image. Please try again.")
+        try:
+            await update.message.reply_text("An error occurred while processing your passport image. Please try again.")
+        except Exception as e2:
+            import traceback
+            print(traceback.format_exc())
+
 
 
 
