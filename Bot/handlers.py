@@ -46,6 +46,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 
+import traceback
+import logging
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles passport photo upload."""
@@ -57,29 +59,43 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         # Wait for the file to be retrieved from Telegram's servers
         file_info = await context.bot.get_file(photos[max_index].file_id)
         
-        # Download the file content as a byte array
-        photo_file_content = await file_info.download_as_bytearray()
+        print("Retrieved file info successfully.")
         
+        # Download the file content as a byte array
+        file_content = await file_info.download_as_bytearray()
+    
+    except Exception as e:
+    # Handle the exception more robustly
+    
+        logging.error(f"Error handling photo upload: {e}")
+        
+        try:
+            # Send a friendly error message to the user
+            print("Sending error message...")
+            await update.message.reply_text("An error occurred while processing your passport image. Please try again.")
+            
+        except Exception as e2:
+            print(traceback.format_exc())
+    else:
+        print("Processing file...")
+        
+        # Save the file content to a local file
         with open(f"passport_{update.effective_user.id}.jpg", 'wb') as f:
-            f.write(photo_file_content)
+            f.write(file_content)
             
         context.user_data["passport_image_path"] = f"passport_{update.effective_user.id}.jpg"
         
+        print("Saved file successfully.")
+        
         # Use a try-except block to catch any exceptions
-        await validate_passport(update, context)
-    except Exception as e:
-        # Handle the exception more robustly
-        import logging
-        
-        # Log the exception with additional context
-        logging.error(f"Error handling photo upload: {e}")
-        
-        # Send a friendly error message to the user
         try:
-            await update.message.reply_text("An error occurred while processing your passport image. Please try again.")
-        except Exception as e2:
-            import traceback
-            print(traceback.format_exc())
+            await validate_passport(update, context)
+            print("Validated passport successfully.")
+            
+        except Exception as e3:
+            logging.error(f"Error validating passport: {e3}")
+
+
 
 
 
